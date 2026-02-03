@@ -7,20 +7,23 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "admin")
+@Table(name = "accommodation")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Admin {
+public class Accommodation {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(unique = true, nullable = false)
-  private String email;
-
   @Column(nullable = false)
-  private String password;
+  private String name;
+
+  @Column private String city;
+
+  @Column private String country;
+
+  @Column private String type; // HOTEL, AIRBNB, GUESTHOUSE, etc.
 }

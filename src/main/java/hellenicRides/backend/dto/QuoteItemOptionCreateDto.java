@@ -6,9 +6,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class AuthResponse {
-  private String token;
+@AllArgsConstructor
+@Builder
+public class QuoteItemOptionCreateDto {
+  private Long optionId;
+  private Integer quantity;
 }
