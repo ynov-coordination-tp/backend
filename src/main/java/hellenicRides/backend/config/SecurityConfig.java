@@ -26,23 +26,23 @@ public class SecurityConfig {
   private final CustomUserDetailsService userDetailsService;
 
   @Bean
+  @SuppressWarnings("java:S4502") // CSRF is disabled because the API is stateless and uses JWT tokens in headers
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/api/auth/**")
-                    .permitAll() // Allow auth endpoints
-                    // .requestMatchers("/api/quotes/**")
-                    // .permitAll() // Allow quote endpoints
-                    // .requestMatchers("/api/options/**")
-                    // .permitAll() // Allow options endpoints
-                    // .requestMatchers("/api/accommodations/**")
-                    // .permitAll() // Allow accommodations endpoints
-                    .requestMatchers("/error")
-                    .permitAll() // Allow error responses
-                    .anyRequest()
-                    .authenticated() // Secure everything else
-            )
+            auth -> auth.requestMatchers("/api/auth/**")
+                .permitAll() // Allow auth endpoints
+                // .requestMatchers("/api/quotes/**")
+                // .permitAll() // Allow quote endpoints
+                // .requestMatchers("/api/options/**")
+                // .permitAll() // Allow options endpoints
+                // .requestMatchers("/api/accommodations/**")
+                // .permitAll() // Allow accommodations endpoints
+                .requestMatchers("/error")
+                .permitAll() // Allow error responses
+                .anyRequest()
+                .authenticated() // Secure everything else
+        )
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider())
