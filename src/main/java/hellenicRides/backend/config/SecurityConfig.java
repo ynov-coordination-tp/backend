@@ -29,19 +29,20 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http.csrf(csrf -> csrf.disable())
         .authorizeHttpRequests(
-            auth -> auth.requestMatchers("/api/auth/**")
-                .permitAll() // Allow auth endpoints
-                // .requestMatchers("/api/quotes/**")
-                // .permitAll() // Allow quote endpoints
-                // .requestMatchers("/api/options/**")
-                // .permitAll() // Allow options endpoints
-                // .requestMatchers("/api/accommodations/**")
-                // .permitAll() // Allow accommodations endpoints
-                .requestMatchers("/error")
-                .permitAll() // Allow error responses
-                .anyRequest()
-                .authenticated() // Secure everything else
-        )
+            auth ->
+                auth.requestMatchers("/api/auth/**")
+                    .permitAll() // Allow auth endpoints
+                    // .requestMatchers("/api/quotes/**")
+                    // .permitAll() // Allow quote endpoints
+                    // .requestMatchers("/api/options/**")
+                    // .permitAll() // Allow options endpoints
+                    // .requestMatchers("/api/accommodations/**")
+                    // .permitAll() // Allow accommodations endpoints
+                    .requestMatchers("/error")
+                    .permitAll() // Allow error responses
+                    .anyRequest()
+                    .authenticated() // Secure everything else
+            )
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider())
