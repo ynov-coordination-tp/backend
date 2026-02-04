@@ -2,6 +2,10 @@
 dev:
 	docker compose -f docker-compose.dev.yml up -d
 
+.PHONY: front
+front:
+	docker compose -f docker-compose.front.yml up -d
+
 .PHONY: build
 build:
 	docker compose -f docker-compose.build.yml build
