@@ -1,6 +1,7 @@
 package hellenicRides.backend.service;
 
 import hellenicRides.backend.entity.*;
+import hellenicRides.backend.exception.FormulaNotAllowedException;
 import hellenicRides.backend.repository.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -8,6 +9,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -80,9 +82,23 @@ public class PricingService {
 
   private void validateFormulaForTour(Long tourId, Long formulaId, Formula formula) {
     if (!isFormulaAllowedForTour(tourId, formulaId)) {
-      throw new IllegalArgumentException(
-          String.format("Formula %s is not allowed for tour %d", formula.getName(), tourId));
+      Tour tour = findTour(tourId);
+      String allowedFormulas = getFormattedAllowedFormulas(tourId);
+
+      throw new FormulaNotAllowedException(formula.getName(), tour.getName(), allowedFormulas);
     }
+  }
+
+  private String getFormattedAllowedFormulas(Long tourId) {
+    List<TourFormula> tourFormulas = tourFormulaRepository.findByTourIdAndIsActiveTrue(tourId);
+
+    if (tourFormulas.isEmpty()) {
+      return "Aucune formule disponible";
+    }
+
+    return tourFormulas.stream()
+        .map(tf -> tf.getFormula().getName())
+        .collect(Collectors.joining(", "));
   }
 
   private TourFormula getTourFormula(Long tourId, Long formulaId) {
