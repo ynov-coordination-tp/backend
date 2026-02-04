@@ -2,10 +2,7 @@ package hellenicRides.backend.service;
 
 import hellenicRides.backend.dto.*;
 import hellenicRides.backend.entity.*;
-import hellenicRides.backend.repository.OptionRepository;
-import hellenicRides.backend.repository.QuoteItemOptionRepository;
-import hellenicRides.backend.repository.QuoteItemRepository;
-import hellenicRides.backend.repository.QuoteRepository;
+import hellenicRides.backend.repository.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -51,6 +48,16 @@ public class QuoteService {
     BigDecimal totalPrice = processQuoteItems(quote, dto);
 
     return finalizeQuote(quote, totalPrice);
+  }
+
+  /**
+   * Récupère tous les devis.
+   *
+   * @return Liste de tous les devis
+   */
+  public List<Quote> getAllQuotes() {
+    log.debug("Fetching all quotes");
+    return quoteRepository.findAll();
   }
 
   /**
@@ -112,6 +119,31 @@ public class QuoteService {
   public List<Quote> getQuotesByCustomerId(Long customerId) {
     log.debug("Fetching quotes for customer: {}", customerId);
     return quoteRepository.findByCustomerId(customerId);
+  }
+
+  /**
+   * Supprime un devis et tous ses éléments associés.
+   *
+   * @param id ID du devis à supprimer
+   * @return true si supprimé, false si non trouvé
+   */
+  @Transactional
+  public boolean deleteQuote(Long id) {
+    log.info("Attempting to delete quote {}", id);
+
+    if (!quoteRepository.existsById(id)) {
+      log.warn("Quote not found with id: {}", id);
+      return false;
+    }
+
+    // Supprimer tous les items et options associés
+    deleteExistingQuoteItems(id);
+
+    // Supprimer le devis lui-même
+    quoteRepository.deleteById(id);
+
+    log.info("Quote {} deleted successfully", id);
+    return true;
   }
 
   // ========== VALIDATION ==========
