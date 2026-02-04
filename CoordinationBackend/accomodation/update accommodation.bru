@@ -1,0 +1,25 @@
+meta {
+  name: update accommodation
+  type: http
+  seq: 2
+}
+
+put {
+  url: http://localhost:8080/api/accommodations/{{accommodationId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Bruno Test Hotel Updated",
+    "city": "Athens",
+    "country": "Greece",
+    "type": "HOTEL"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

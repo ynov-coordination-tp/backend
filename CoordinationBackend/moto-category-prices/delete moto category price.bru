@@ -1,0 +1,16 @@
+meta {
+  name: delete moto category price
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:8080/api/moto-category-prices/{{motoCategoryPriceId}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

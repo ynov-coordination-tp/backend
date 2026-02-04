@@ -1,0 +1,29 @@
+meta {
+  name: create quote item option
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/quote-item-options
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "quoteItemId": {{quoteItemId}},
+    "optionId": 1,
+    "quantity": 1,
+    "lockedPrice": 50.00
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("quoteItemOptionId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

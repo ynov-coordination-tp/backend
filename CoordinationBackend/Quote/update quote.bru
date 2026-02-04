@@ -1,0 +1,38 @@
+meta {
+  name: update quote
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/quotes/{{quoteId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "customerId": 1,
+    "tourPackageId": 1,
+    "departureDate": "2026-06-01",
+    "returnDate": "2026-06-10",
+    "items": [
+      {
+        "participantName": "John Doe Updated",
+        "motoLocationId": 1,
+        "accommodationId": 1,
+        "options": [
+          {
+            "optionId": 1,
+            "quantity": 2
+          }
+        ]
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

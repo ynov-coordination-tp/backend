@@ -1,0 +1,30 @@
+meta {
+  name: Create Moto Category
+  type: http
+  seq: 3
+}
+
+script:pre-request {
+  const unique = Date.now();
+  bru.setEnvVar("motoCategoryName", `Bruno Category ${unique}`);
+}
+
+post {
+  url: http://localhost:8080/api/moto-categories
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "{{motoCategoryName}}"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("motoCategoryId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+}

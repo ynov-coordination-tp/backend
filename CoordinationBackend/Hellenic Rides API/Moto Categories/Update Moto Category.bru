@@ -1,0 +1,21 @@
+meta {
+  name: Update Moto Category
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/moto-categories/{{motoCategoryId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Bruno Category Updated"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

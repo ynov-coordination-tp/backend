@@ -24,4 +24,28 @@ public class OptionService {
   public List<Option> getOptionsByTargetType(String targetType) {
     return optionRepository.findByTargetType(targetType);
   }
+
+  public Option saveOption(Option option) {
+    return optionRepository.save(option);
+  }
+
+  public Optional<Option> updateOption(Long id, Option details) {
+    return optionRepository
+        .findById(id)
+        .map(
+            existing -> {
+              existing.setName(details.getName());
+              existing.setPrice(details.getPrice());
+              existing.setTargetType(details.getTargetType());
+              return optionRepository.save(existing);
+            });
+  }
+
+  public boolean deleteOption(Long id) {
+    if (!optionRepository.existsById(id)) {
+      return false;
+    }
+    optionRepository.deleteById(id);
+    return true;
+  }
 }

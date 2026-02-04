@@ -1,0 +1,42 @@
+meta {
+  name: create quote
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/quotes
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "customerId": 1,
+    "tourPackageId": 1,
+    "departureDate": "2026-06-01",
+    "returnDate": "2026-06-10",
+    "items": [
+      {
+        "participantName": "John Doe",
+        "motoLocationId": 1,
+        "accommodationId": 1,
+        "options": [
+          {
+            "optionId": 1,
+            "quantity": 1
+          }
+        ]
+      }
+    ]
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("quoteId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

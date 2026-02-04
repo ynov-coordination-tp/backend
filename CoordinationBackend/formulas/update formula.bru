@@ -1,0 +1,25 @@
+meta {
+  name: update formula
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/formulas/{{formulaId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Hermes Updated",
+    "includesMoto": true,
+    "includesAccommodation": true,
+    "includesMeals": false
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

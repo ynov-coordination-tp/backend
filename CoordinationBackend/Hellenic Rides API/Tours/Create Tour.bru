@@ -1,0 +1,28 @@
+meta {
+  name: Create Tour
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/api/tours
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Bruno Test Tour",
+    "country": "Greece",
+    "durationDays": 5,
+    "description": "Bruno generated tour"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tourId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+}

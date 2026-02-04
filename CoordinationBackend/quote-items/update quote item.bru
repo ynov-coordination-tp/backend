@@ -1,0 +1,26 @@
+meta {
+  name: update quote item
+  type: http
+  seq: 5
+}
+
+put {
+  url: http://localhost:8080/api/quote-items/{{quoteItemId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "quoteId": {{quoteId}},
+    "participantName": "Jane Doe Updated",
+    "motoLocationId": 1,
+    "accommodationId": 1,
+    "lockedUnitPrice": 550.00
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

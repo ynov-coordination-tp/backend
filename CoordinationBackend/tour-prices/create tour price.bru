@@ -1,0 +1,29 @@
+meta {
+  name: create tour price
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/tour-prices
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "tourFormula": { "id": 1 },
+    "startDate": "2026-05-01",
+    "endDate": "2026-05-31",
+    "basePrice": 2500.00
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tourPriceId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,30 @@
+meta {
+  name: create quote item
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/quote-items
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "quoteId": {{quoteId}},
+    "participantName": "Jane Doe",
+    "motoLocationId": 1,
+    "accommodationId": 1,
+    "lockedUnitPrice": 500.00
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("quoteItemId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

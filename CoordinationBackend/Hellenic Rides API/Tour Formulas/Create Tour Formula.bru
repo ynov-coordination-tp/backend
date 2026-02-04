@@ -1,0 +1,27 @@
+meta {
+  name: Create Tour Formula
+  type: http
+  seq: 4
+}
+
+post {
+  url: http://localhost:8080/api/tour-formulas
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "tour": { "id": 1 },
+    "formula": { "id": 1 },
+    "isActive": true
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("tourFormulaId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+}

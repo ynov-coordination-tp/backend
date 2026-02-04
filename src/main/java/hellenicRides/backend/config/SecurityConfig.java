@@ -33,18 +33,19 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/api/auth/**")
-                    .permitAll() // Allow auth endpoints
-                    // .requestMatchers("/api/quotes/**")
-                    // .permitAll() // Allow quote endpoints
-                    // .requestMatchers("/api/options/**")
-                    // .permitAll() // Allow options endpoints
-                    // .requestMatchers("/api/accommodations/**")
-                    // .permitAll() // Allow accommodations endpoints
+                    .permitAll()
+                    .requestMatchers(
+                        org.springframework.http.HttpMethod.POST, "/api/quotes", "/api/quotes/")
+                    .permitAll() // Allow public POST /api/quotes
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/**")
+                    .permitAll() // All GETs are public
+                    .requestMatchers(
+                        "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**")
+                    .permitAll()
                     .requestMatchers("/error")
-                    .permitAll() // Allow error responses
+                    .permitAll()
                     .anyRequest()
-                    .authenticated() // Secure everything else
-            )
+                    .authenticated())
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authenticationProvider(authenticationProvider())

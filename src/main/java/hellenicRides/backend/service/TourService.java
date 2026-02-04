@@ -30,6 +30,19 @@ public class TourService {
     return tourRepository.save(tour);
   }
 
+  public Optional<Tour> updateTour(Long id, Tour details) {
+    return tourRepository
+        .findById(id)
+        .map(
+            existing -> {
+              existing.setName(details.getName());
+              existing.setCountry(details.getCountry());
+              existing.setDurationDays(details.getDurationDays());
+              existing.setDescription(details.getDescription());
+              return tourRepository.save(existing);
+            });
+  }
+
   public void deleteTour(Long id) {
     log.info("Deleting tour with id: {}", id);
     tourRepository.deleteById(id);

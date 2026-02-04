@@ -1,0 +1,24 @@
+meta {
+  name: update option
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/options/{{optionId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Bruno GPS Updated",
+    "price": 20.00,
+    "targetType": "QUOTE_ITEM"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

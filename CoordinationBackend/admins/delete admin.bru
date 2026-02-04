@@ -1,0 +1,16 @@
+meta {
+  name: delete admin
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://localhost:8080/api/admins/{{adminId}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,30 @@
+meta {
+  name: create accommodation price
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/accommodation-prices
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "accommodationId": 1,
+    "startDate": "2026-05-01",
+    "endDate": "2026-05-31",
+    "nightlyPrice": 120.00,
+    "roomType": "SINGLE"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("accommodationPriceId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

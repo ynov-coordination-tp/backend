@@ -1,0 +1,15 @@
+meta {
+  name: Delete Moto Category
+  type: http
+  seq: 5
+}
+
+delete {
+  url: http://localhost:8080/api/moto-categories/{{motoCategoryId}}
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+}
