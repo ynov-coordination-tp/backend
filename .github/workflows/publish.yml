@@ -48,4 +48,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Trigger Dokploy Rebuild
-        run: curl -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}"
+        env:
+          DOKPLOY_WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
+        run: |
+          curl -X POST "${DOKPLOY_WEBHOOK_URL}"
