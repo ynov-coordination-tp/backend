@@ -74,9 +74,7 @@ public class DataInitializer {
                     .includesMoto(false)
                     .includesAccommodation(true)
                     .includesMeals(false)
-                    .build()); // Breakfast only logic
-        // handled in business layer
-        // or description
+                    .build());
         athena =
             formulaRepository.save(
                 Formula.builder()
@@ -88,8 +86,6 @@ public class DataInitializer {
         System.out.println("Formulas created.");
       } else {
         List<Formula> formulas = formulaRepository.findAll();
-        // Simple lookup for demo purposes if already exists (unsafe for real prod but
-        // ok for demo)
         if (formulas.size() >= 3) {
           zeus = formulas.get(0);
           poseidon = formulas.get(1);
@@ -97,7 +93,7 @@ public class DataInitializer {
         }
       }
 
-      // 3. Create Tours
+      // 3. Create Tours - AVEC DISTANCES
       Tour grece16 = null, grece13 = null, trail = null;
       if (tourRepository.count() == 0) {
         grece16 =
@@ -106,6 +102,7 @@ public class DataInitializer {
                     .name("Grèce Evasion")
                     .country("Grèce")
                     .durationDays(16)
+                    .distanceKm(3200) // ===== 16 jours × 200 km/jour
                     .description("Le grand tour de la Grèce")
                     .build());
         grece13 =
@@ -114,6 +111,7 @@ public class DataInitializer {
                     .name("Grèce Classique")
                     .country("Grèce")
                     .durationDays(13)
+                    .distanceKm(2600) // ===== 13 jours × 200 km/jour
                     .description("L'essentiel de la Grèce")
                     .build());
         tourRepository.save(
@@ -121,6 +119,7 @@ public class DataInitializer {
                 .name("Crète Sauvage")
                 .country("Grèce")
                 .durationDays(9)
+                .distanceKm(1800)
                 .description("Découverte de la Crète")
                 .build());
         trail =
@@ -129,20 +128,29 @@ public class DataInitializer {
                     .name("Trail Explorer")
                     .country("Grèce")
                     .durationDays(7)
+                    .distanceKm(1200) // ===== Moins de km/jour pour off-road
                     .description("Off-road adventure")
                     .build());
-        System.out.println("Tours created.");
+        System.out.println("Tours created with distances.");
+      } else {
+        // Récupérer les tours existants pour la section 4
+        List<Tour> tours = tourRepository.findAll();
+        if (tours.size() >= 4) {
+          grece16 = tours.get(0);
+          grece13 = tours.get(1);
+          trail = tours.get(3);
+        }
       }
 
-      // 4. Link Tours & Formulas (TourFormula)
+      // ===== 4. Link Tours & Formulas (TourFormula) - SECTION MANQUANTE =====
       if (tourFormulaRepository.count() == 0 && grece16 != null && zeus != null) {
-        // Grèce 16j: Pas de Zeus
+        // Grèce 16j: Pas de Zeus (selon cahier des charges)
         tourFormulaRepository.save(
             TourFormula.builder().tour(grece16).formula(poseidon).isActive(true).build());
         tourFormulaRepository.save(
             TourFormula.builder().tour(grece16).formula(athena).isActive(true).build());
 
-        // Grèce 13j: Tout
+        // Grèce 13j: Toutes les formules
         tourFormulaRepository.save(
             TourFormula.builder().tour(grece13).formula(zeus).isActive(true).build());
         tourFormulaRepository.save(
@@ -150,14 +158,14 @@ public class DataInitializer {
         tourFormulaRepository.save(
             TourFormula.builder().tour(grece13).formula(athena).isActive(true).build());
 
-        // Trail: Athena only
+        // Trail: Athena uniquement (selon cahier des charges)
         tourFormulaRepository.save(
             TourFormula.builder().tour(trail).formula(athena).isActive(true).build());
 
-        System.out.println("TourFormulas linked.");
+        System.out.println("TourFormulas linked (restrictions applied).");
       }
 
-      // 5. Moto Categories & Locations
+      // ===== 5. Moto Categories & Locations - PRIX EN CENTIMES =====
       if (motoCategoryRepository.count() == 0) {
         MotoCategory roadster =
             motoCategoryRepository.save(MotoCategory.builder().name("Roadster").build());
@@ -189,48 +197,68 @@ public class DataInitializer {
                 .count(3)
                 .build());
 
-        // Prices
+        // Prices - EN CENTIMES (multiplier par 100)
         LocalDate today = LocalDate.now();
+
+        // ROADSTER : 80€/jour = 8000 centimes, 0.50€/km = 50 centimes
         motoCategoryPriceRepository.save(
             MotoCategoryPrice.builder()
                 .motoCategory(roadster)
                 .country("Grèce")
-                .dailyPrice(new BigDecimal("80"))
+                .dailyPrice(new BigDecimal("8000"))
+                .kmPrice(new BigDecimal("50"))
                 .startDate(today)
                 .endDate(today.plusYears(1))
                 .build());
+
+        // TRAIL : 100€/jour = 10000 centimes, 0.60€/km = 60 centimes
         motoCategoryPriceRepository.save(
             MotoCategoryPrice.builder()
                 .motoCategory(trailCat)
                 .country("Grèce")
-                .dailyPrice(new BigDecimal("100"))
+                .dailyPrice(new BigDecimal("10000"))
+                .kmPrice(new BigDecimal("60"))
                 .startDate(today)
                 .endDate(today.plusYears(1))
                 .build());
+
+        // TOURING : 120€/jour = 12000 centimes, 0.70€/km = 70 centimes
+        motoCategoryPriceRepository.save(
+            MotoCategoryPrice.builder()
+                .motoCategory(touring)
+                .country("Grèce")
+                .dailyPrice(new BigDecimal("12000"))
+                .kmPrice(new BigDecimal("70"))
+                .startDate(today)
+                .endDate(today.plusYears(1))
+                .build());
+
+        System.out.println("Moto prices created in centimes (daily + km pricing).");
       }
 
-      // 6. Old Data Preservation (Accommodations, etc.)
+      // 6. Options - PRIX EN CENTIMES
       if (optionRepository.count() == 0) {
         optionRepository.saveAll(
             Arrays.asList(
                 Option.builder()
                     .name("Réservation de vol")
-                    .price(new BigDecimal("250.00"))
+                    .price(new BigDecimal("25000"))
                     .targetType("VOL")
                     .build(),
                 Option.builder()
                     .name("Transfert Aéroport")
-                    .price(new BigDecimal("50.00"))
+                    .price(new BigDecimal("5000"))
                     .targetType("TRANSFER")
                     .build(),
                 Option.builder()
                     .name("Petit-déjeuner")
-                    .price(new BigDecimal("15.00"))
+                    .price(new BigDecimal("1500"))
                     .targetType("REPAS")
                     .build()));
+        System.out.println("Options created in centimes.");
       }
 
-      // Accommodations (Preserved logic)
+      // 7. Accommodations Prices - PRIX EN CENTIMES
       if (accommodationRepository.count() == 0) {
         Accommodation hotel1 =
             accommodationRepository.save(
@@ -238,9 +266,79 @@ public class DataInitializer {
                     .name("Hôtel Athènes Grand Comfort")
                     .city("Athènes")
                     .country("Grèce")
+                    .type("HOTEL")
                     .build());
-        // Prices logic omitted for brevity but can be added back if essential for other
-        // tests
+
+        LocalDate today = LocalDate.now();
+
+        // SINGLE : 120€/nuit = 12000 centimes
+        accommodationPriceRepository.save(
+            AccommodationPrice.builder()
+                .accommodationId(hotel1.getId())
+                .startDate(today)
+                .endDate(today.plusYears(1))
+                .nightlyPrice(new BigDecimal("12000"))
+                .roomType("SINGLE")
+                .build());
+
+        // COUPLE : 150€/nuit = 15000 centimes
+        accommodationPriceRepository.save(
+            AccommodationPrice.builder()
+                .accommodationId(hotel1.getId())
+                .startDate(today)
+                .endDate(today.plusYears(1))
+                .nightlyPrice(new BigDecimal("15000"))
+                .roomType("COUPLE")
+                .build());
+
+        // SHARED : 80€/nuit = 8000 centimes
+        accommodationPriceRepository.save(
+            AccommodationPrice.builder()
+                .accommodationId(hotel1.getId())
+                .startDate(today)
+                .endDate(today.plusYears(1))
+                .nightlyPrice(new BigDecimal("8000"))
+                .roomType("SHARED")
+                .build());
+
+        System.out.println("Accommodation prices created in centimes.");
+      }
+
+      // 8. Tour Prices - PRIX EN CENTIMES
+      if (tourPriceRepository.count() == 0 && grece13 != null) {
+        // Récupérer les TourFormulas pour Grèce 13 jours
+        List<TourFormula> grece13Formulas =
+            tourFormulaRepository.findByTourIdAndIsActiveTrue(grece13.getId());
+
+        for (TourFormula tf : grece13Formulas) {
+          String formulaName = tf.getFormula().getName();
+          BigDecimal basePrice;
+
+          // Prix différents selon la formule (en centimes)
+          switch (formulaName) {
+            case "Zeus":
+              basePrice = new BigDecimal("180000"); // 1800€
+              break;
+            case "Poseidon":
+              basePrice = new BigDecimal("150000"); // 1500€
+              break;
+            case "Athena":
+              basePrice = new BigDecimal("120000"); // 1200€
+              break;
+            default:
+              basePrice = new BigDecimal("150000");
+          }
+
+          tourPriceRepository.save(
+              TourPrice.builder()
+                  .tourFormula(tf)
+                  .startDate(LocalDate.of(2026, 1, 1))
+                  .endDate(LocalDate.of(2026, 12, 31))
+                  .basePrice(basePrice)
+                  .build());
+        }
+
+        System.out.println("Tour prices created in centimes.");
       }
     };
   }

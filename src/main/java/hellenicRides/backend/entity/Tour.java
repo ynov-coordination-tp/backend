@@ -44,4 +44,7 @@ public class Tour {
   @Column(columnDefinition = "TEXT")
   @Schema(description = "Description", example = "A scenic tour across Greece.")
   private String description;
+
+  @Column(name = "distance_km")
+  private Integer distanceKm;
 }
