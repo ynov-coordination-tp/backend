@@ -2,7 +2,10 @@ package hellenicRides.backend.service;
 
 import hellenicRides.backend.dto.*;
 import hellenicRides.backend.entity.*;
-import hellenicRides.backend.repository.*;
+import hellenicRides.backend.repository.OptionRepository;
+import hellenicRides.backend.repository.QuoteItemOptionRepository;
+import hellenicRides.backend.repository.QuoteItemRepository;
+import hellenicRides.backend.repository.QuoteRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +30,7 @@ public class QuoteService {
   private final QuoteItemOptionRepository quoteItemOptionRepository;
   private final OptionRepository optionRepository;
   private final PricingService pricingService;
+  private final CustomerService customerService;
 
   // ========== API PUBLIQUE ==========
 
@@ -39,10 +43,11 @@ public class QuoteService {
   @Transactional
   public Quote createQuote(QuoteCreateDto dto) {
     logQuoteCreationStart(dto);
-
     validateQuoteCreationRequest(dto);
 
-    Quote quote = buildAndSaveQuote(dto);
+    Customer customer = customerService.findOrCreateCustomer(dto.getCustomer());
+
+    Quote quote = buildAndSaveQuote(dto, customer.getId());
     BigDecimal totalPrice = processQuoteItems(quote, dto);
 
     return finalizeQuote(quote, totalPrice);
@@ -87,8 +92,12 @@ public class QuoteService {
     validateQuoteCreationRequest(dto);
 
     Quote quote = existingQuoteOpt.get();
+
+    // Gérer le client (trouver ou créer)
+    Customer customer = customerService.findOrCreateCustomer(dto.getCustomer());
+
     deleteExistingQuoteItems(id);
-    updateQuoteBasicInfo(quote, dto);
+    updateQuoteBasicInfo(quote, dto, customer.getId());
     BigDecimal totalPrice = processQuoteItems(quote, dto);
 
     return Optional.of(finalizeQuote(quote, totalPrice));
@@ -128,15 +137,15 @@ public class QuoteService {
 
   // ========== CRÉATION QUOTE ==========
 
-  private Quote buildAndSaveQuote(QuoteCreateDto dto) {
-    Quote quote = buildQuote(dto);
+  private Quote buildAndSaveQuote(QuoteCreateDto dto, Long customerId) {
+    Quote quote = buildQuote(dto, customerId);
     return quoteRepository.save(quote);
   }
 
-  private Quote buildQuote(QuoteCreateDto dto) {
+  private Quote buildQuote(QuoteCreateDto dto, Long customerId) {
     return Quote.builder()
         .quoteNumber(generateQuoteNumber())
-        .customerId(dto.getCustomerId())
+        .customerId(customerId)
         .tourPackageId(dto.getTourPackageId())
         .departureDate(dto.getDepartureDate())
         .returnDate(dto.getReturnDate())
@@ -324,8 +333,8 @@ public class QuoteService {
     log.debug("Deleted existing items for quote {}", quoteId);
   }
 
-  private void updateQuoteBasicInfo(Quote quote, QuoteCreateDto dto) {
-    quote.setCustomerId(dto.getCustomerId());
+  private void updateQuoteBasicInfo(Quote quote, QuoteCreateDto dto, Long customerId) {
+    quote.setCustomerId(customerId);
     quote.setTourPackageId(dto.getTourPackageId());
     quote.setDepartureDate(dto.getDepartureDate());
     quote.setReturnDate(dto.getReturnDate());

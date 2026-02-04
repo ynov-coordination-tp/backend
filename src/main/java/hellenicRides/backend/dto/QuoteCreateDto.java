@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class QuoteCreateDto {
-  private Long customerId;
+  private CustomerDto customer;
   private Long tourPackageId;
 
   private Long formulaId; // Zeus, Poseidon ou Athena
