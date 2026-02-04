@@ -1,0 +1,61 @@
+meta {
+  name: demande devis
+  type: http
+  seq: 6
+}
+
+post {
+  url: http://localhost:8080/api/quotes
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "customer": {
+      "lastName": "Beaugoss",
+      "firstName": "JP",
+      "email": "jp.beaugoss@gmail.com",
+      "phone": "+33612345678"
+    },
+    "tourPackageId": 2,
+    "formulaId": 1,
+    "departureDate": "2026-06-15",
+    "returnDate": "2026-06-22",
+    "items": [
+      {
+        "participantName": "JP Beaugoss",
+        "motoLocationId": 1,
+        "accommodationId": 1,
+        "roomType": "SINGLE",
+        "options": [
+          {
+            "optionId": 1,
+            "quantity": 1
+          }
+        ]
+      },
+      {
+        "participantName": "Marie Dupont",
+        "motoLocationId": 2,
+        "accommodationId": 1,
+        "roomType": "COUPLE",
+        "options": [
+          {
+            "optionId": 1,
+            "quantity": 1
+          },
+          {
+            "optionId": 2,
+            "quantity": 2
+          }
+        ]
+      }
+    ]
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

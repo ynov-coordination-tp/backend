@@ -14,18 +14,34 @@ import lombok.NoArgsConstructor;
 @Builder
 @Schema(name = "QuoteCreateDto", description = "Quote creation payload.")
 public class QuoteCreateDto {
-  @Schema(description = "Customer id", example = "100")
-  private Long customerId;
 
-  @Schema(description = "Tour package id", example = "200")
+  @Schema(description = "Customer information for quote creation")
+  private CustomerDto customer;
+
+  @Schema(
+      description = "Tour package id",
+      example = "1",
+      requiredMode = Schema.RequiredMode.REQUIRED)
   private Long tourPackageId;
 
-  @Schema(description = "Departure date", example = "2026-06-01")
+  @Schema(
+      description = "Formula id (Zeus=1, Poseidon=2, Athena=3)",
+      example = "1",
+      requiredMode = Schema.RequiredMode.REQUIRED)
+  private Long formulaId;
+
+  @Schema(
+      description = "Departure date",
+      example = "2026-06-01",
+      requiredMode = Schema.RequiredMode.REQUIRED)
   private LocalDate departureDate;
 
-  @Schema(description = "Return date", example = "2026-06-10")
+  @Schema(
+      description = "Return date",
+      example = "2026-06-10",
+      requiredMode = Schema.RequiredMode.REQUIRED)
   private LocalDate returnDate;
 
-  @Schema(description = "Quote items")
+  @Schema(description = "Quote items (participants)", requiredMode = Schema.RequiredMode.REQUIRED)
   private List<QuoteItemCreateDto> items;
 }

@@ -9,217 +9,405 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Service de gestion des devis. Responsabilité : Orchestrer la création, mise à jour et
+ * récupération des devis.
+ */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class QuoteService {
 
   private final QuoteRepository quoteRepository;
   private final QuoteItemRepository quoteItemRepository;
   private final QuoteItemOptionRepository quoteItemOptionRepository;
   private final OptionRepository optionRepository;
+  private final PricingService pricingService;
+  private final CustomerService customerService;
 
+  // ========== API PUBLIQUE ==========
+
+  /**
+   * Crée un nouveau devis avec tous ses items et options.
+   *
+   * @param dto Données du devis à créer
+   * @return Le devis créé avec son prix total calculé
+   */
   @Transactional
   public Quote createQuote(QuoteCreateDto dto) {
-    // Create the quote
-    Quote quote =
-        Quote.builder()
-            .quoteNumber(generateQuoteNumber())
-            .customerId(dto.getCustomerId())
-            .tourPackageId(dto.getTourPackageId())
-            .departureDate(dto.getDepartureDate())
-            .returnDate(dto.getReturnDate())
-            .participantCount(dto.getItems() != null ? dto.getItems().size() : 0)
-            .status("DRAFT")
-            .build();
+    logQuoteCreationStart(dto);
+    validateQuoteCreationRequest(dto);
 
-    quote = quoteRepository.save(quote);
+    Customer customer = customerService.findOrCreateCustomer(dto.getCustomer());
 
-    BigDecimal totalPrice = BigDecimal.ZERO;
+    Quote quote = buildAndSaveQuote(dto, customer.getId());
+    BigDecimal totalPrice = processQuoteItems(quote, dto);
 
-    // Create quote items
-    if (dto.getItems() != null) {
-      for (QuoteItemCreateDto itemDto : dto.getItems()) {
-        QuoteItem item =
-            QuoteItem.builder()
-                .quoteId(quote.getId())
-                .participantName(itemDto.getParticipantName())
-                .motoLocationId(itemDto.getMotoLocationId())
-                .accommodationId(itemDto.getAccommodationId())
-                .build();
-
-        BigDecimal itemPrice = BigDecimal.ZERO;
-
-        // Create quote item options and calculate price
-        if (itemDto.getOptions() != null) {
-          for (QuoteItemOptionCreateDto optionDto : itemDto.getOptions()) {
-            Optional<Option> optionOpt = optionRepository.findById(optionDto.getOptionId());
-            if (optionOpt.isPresent()) {
-              Option option = optionOpt.get();
-              int quantity = optionDto.getQuantity() != null ? optionDto.getQuantity() : 1;
-              BigDecimal optionPrice = option.getPrice().multiply(BigDecimal.valueOf(quantity));
-              itemPrice = itemPrice.add(optionPrice);
-            }
-          }
-        }
-
-        item.setLockedUnitPrice(itemPrice);
-        item = quoteItemRepository.save(item);
-
-        // Now save the options with the item ID
-        if (itemDto.getOptions() != null) {
-          for (QuoteItemOptionCreateDto optionDto : itemDto.getOptions()) {
-            Optional<Option> optionOpt = optionRepository.findById(optionDto.getOptionId());
-            if (optionOpt.isPresent()) {
-              Option option = optionOpt.get();
-              int quantity = optionDto.getQuantity() != null ? optionDto.getQuantity() : 1;
-              BigDecimal optionPrice = option.getPrice().multiply(BigDecimal.valueOf(quantity));
-
-              QuoteItemOption quoteItemOption =
-                  QuoteItemOption.builder()
-                      .quoteItemId(item.getId())
-                      .optionId(option.getId())
-                      .quantity(quantity)
-                      .lockedPrice(optionPrice)
-                      .build();
-
-              quoteItemOptionRepository.save(quoteItemOption);
-            }
-          }
-        }
-
-        totalPrice = totalPrice.add(itemPrice);
-      }
-    }
-
-    // Update quote with total price
-    quote.setLockedTotalPrice(totalPrice);
-    return quoteRepository.save(quote);
+    return finalizeQuote(quote, totalPrice);
   }
 
+  /**
+   * Récupère tous les devis.
+   *
+   * @return Liste de tous les devis
+   */
   public List<Quote> getAllQuotes() {
+    log.debug("Fetching all quotes");
     return quoteRepository.findAll();
   }
 
+  /**
+   * Récupère un devis par son ID avec tous ses détails.
+   *
+   * @param id ID du devis
+   * @return Le devis avec tous ses items et options
+   */
   public Optional<QuoteResponseDto> getQuoteById(Long id) {
     Optional<Quote> quoteOpt = quoteRepository.findById(id);
+
     if (quoteOpt.isEmpty()) {
+      log.debug("Quote not found with id: {}", id);
       return Optional.empty();
     }
 
     Quote quote = quoteOpt.get();
-    List<QuoteItem> items = quoteItemRepository.findByQuoteId(id);
-
-    List<QuoteItemResponseDto> itemDtos =
-        items.stream()
-            .map(
-                item -> {
-                  List<QuoteItemOption> options =
-                      quoteItemOptionRepository.findByQuoteItemId(item.getId());
-                  List<QuoteItemOptionResponseDto> optionDtos =
-                      options.stream()
-                          .map(QuoteItemOptionResponseDto::fromEntity)
-                          .collect(Collectors.toList());
-                  return QuoteItemResponseDto.fromEntity(item, optionDtos);
-                })
-            .collect(Collectors.toList());
+    List<QuoteItemResponseDto> itemDtos = buildQuoteItemResponses(id);
 
     return Optional.of(QuoteResponseDto.fromEntity(quote, itemDtos));
   }
 
+  /**
+   * Met à jour un devis existant.
+   *
+   * @param id ID du devis à mettre à jour
+   * @param dto Nouvelles données du devis
+   * @return Le devis mis à jour
+   */
   @Transactional
   public Optional<Quote> updateQuote(Long id, QuoteCreateDto dto) {
     Optional<Quote> existingQuoteOpt = quoteRepository.findById(id);
+
     if (existingQuoteOpt.isEmpty()) {
+      log.warn("Cannot update quote: Quote not found with id {}", id);
       return Optional.empty();
     }
 
-    // Delete existing items and options
-    List<QuoteItem> existingItems = quoteItemRepository.findByQuoteId(id);
-    for (QuoteItem item : existingItems) {
-      quoteItemOptionRepository.deleteByQuoteItemId(item.getId());
-    }
-    quoteItemRepository.deleteByQuoteId(id);
+    validateQuoteCreationRequest(dto);
 
-    // Update quote
     Quote quote = existingQuoteOpt.get();
-    quote.setCustomerId(dto.getCustomerId());
-    quote.setTourPackageId(dto.getTourPackageId());
-    quote.setDepartureDate(dto.getDepartureDate());
-    quote.setReturnDate(dto.getReturnDate());
-    quote.setParticipantCount(dto.getItems() != null ? dto.getItems().size() : 0);
 
-    BigDecimal totalPrice = BigDecimal.ZERO;
+    // Gérer le client (trouver ou créer)
+    Customer customer = customerService.findOrCreateCustomer(dto.getCustomer());
 
-    // Create new quote items
-    if (dto.getItems() != null) {
-      for (QuoteItemCreateDto itemDto : dto.getItems()) {
-        QuoteItem item =
-            QuoteItem.builder()
-                .quoteId(quote.getId())
-                .participantName(itemDto.getParticipantName())
-                .motoLocationId(itemDto.getMotoLocationId())
-                .accommodationId(itemDto.getAccommodationId())
-                .build();
+    deleteExistingQuoteItems(id);
+    updateQuoteBasicInfo(quote, dto, customer.getId());
+    BigDecimal totalPrice = processQuoteItems(quote, dto);
 
-        BigDecimal itemPrice = BigDecimal.ZERO;
-
-        item = quoteItemRepository.save(item);
-
-        if (itemDto.getOptions() != null) {
-          for (QuoteItemOptionCreateDto optionDto : itemDto.getOptions()) {
-            Optional<Option> optionOpt = optionRepository.findById(optionDto.getOptionId());
-            if (optionOpt.isPresent()) {
-              Option option = optionOpt.get();
-              int quantity = optionDto.getQuantity() != null ? optionDto.getQuantity() : 1;
-              BigDecimal optionPrice = option.getPrice().multiply(BigDecimal.valueOf(quantity));
-
-              QuoteItemOption quoteItemOption =
-                  QuoteItemOption.builder()
-                      .quoteItemId(item.getId())
-                      .optionId(option.getId())
-                      .quantity(quantity)
-                      .lockedPrice(optionPrice)
-                      .build();
-
-              quoteItemOptionRepository.save(quoteItemOption);
-              itemPrice = itemPrice.add(optionPrice);
-            }
-          }
-        }
-
-        item.setLockedUnitPrice(itemPrice);
-        quoteItemRepository.save(item);
-        totalPrice = totalPrice.add(itemPrice);
-      }
-    }
-
-    quote.setLockedTotalPrice(totalPrice);
-    return Optional.of(quoteRepository.save(quote));
+    return Optional.of(finalizeQuote(quote, totalPrice));
   }
 
+  /**
+   * Récupère tous les devis d'un client.
+   *
+   * @param customerId ID du client
+   * @return Liste des devis du client
+   */
   public List<Quote> getQuotesByCustomerId(Long customerId) {
+    log.debug("Fetching quotes for customer: {}", customerId);
     return quoteRepository.findByCustomerId(customerId);
   }
 
+  /**
+   * Supprime un devis et tous ses éléments associés.
+   *
+   * @param id ID du devis à supprimer
+   * @return true si supprimé, false si non trouvé
+   */
   @Transactional
   public boolean deleteQuote(Long id) {
+    log.info("Attempting to delete quote {}", id);
+
     if (!quoteRepository.existsById(id)) {
+      log.warn("Quote not found with id: {}", id);
       return false;
     }
 
-    List<QuoteItem> items = quoteItemRepository.findByQuoteId(id);
-    for (QuoteItem item : items) {
-      quoteItemOptionRepository.deleteByQuoteItemId(item.getId());
-    }
-    quoteItemRepository.deleteByQuoteId(id);
+    // Supprimer tous les items et options associés
+    deleteExistingQuoteItems(id);
+
+    // Supprimer le devis lui-même
     quoteRepository.deleteById(id);
+
+    log.info("Quote {} deleted successfully", id);
     return true;
+  }
+
+  // ========== VALIDATION ==========
+
+  private void validateQuoteCreationRequest(QuoteCreateDto dto) {
+    validateFormulaIdPresent(dto);
+    validateFormulaAllowedForTour(dto);
+  }
+
+  private void validateFormulaIdPresent(QuoteCreateDto dto) {
+    if (dto.getFormulaId() == null) {
+      throw new IllegalArgumentException("Formula ID is required");
+    }
+  }
+
+  private void validateFormulaAllowedForTour(QuoteCreateDto dto) {
+    if (!pricingService.isFormulaAllowedForTour(dto.getTourPackageId(), dto.getFormulaId())) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Formula %d is not allowed for tour %d", dto.getFormulaId(), dto.getTourPackageId()));
+    }
+  }
+
+  // ========== CRÉATION QUOTE ==========
+
+  private Quote buildAndSaveQuote(QuoteCreateDto dto, Long customerId) {
+    Quote quote = buildQuote(dto, customerId);
+    return quoteRepository.save(quote);
+  }
+
+  private Quote buildQuote(QuoteCreateDto dto, Long customerId) {
+    return Quote.builder()
+        .quoteNumber(generateQuoteNumber())
+        .customerId(customerId)
+        .tourPackageId(dto.getTourPackageId())
+        .departureDate(dto.getDepartureDate())
+        .returnDate(dto.getReturnDate())
+        .participantCount(calculateParticipantCount(dto))
+        .status("DRAFT")
+        .build();
+  }
+
+  private int calculateParticipantCount(QuoteCreateDto dto) {
+    return dto.getItems() != null ? dto.getItems().size() : 0;
   }
 
   private String generateQuoteNumber() {
     return "QT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+  }
+
+  // ========== TRAITEMENT ITEMS ==========
+
+  private BigDecimal processQuoteItems(Quote quote, QuoteCreateDto dto) {
+    if (dto.getItems() == null || dto.getItems().isEmpty()) {
+      log.warn("No items provided for quote {}", quote.getId());
+      return BigDecimal.ZERO;
+    }
+
+    BigDecimal totalPrice = BigDecimal.ZERO;
+
+    for (QuoteItemCreateDto itemDto : dto.getItems()) {
+      BigDecimal itemTotalPrice = processQuoteItem(quote, dto, itemDto);
+      totalPrice = totalPrice.add(itemTotalPrice);
+    }
+
+    return totalPrice;
+  }
+
+  private BigDecimal processQuoteItem(Quote quote, QuoteCreateDto dto, QuoteItemCreateDto itemDto) {
+    logItemProcessingStart(itemDto);
+
+    BigDecimal basePrice = calculateItemBasePrice(dto, itemDto);
+    BigDecimal optionsPrice = calculateItemOptionsPrice(itemDto);
+    BigDecimal totalItemPrice = basePrice.add(optionsPrice);
+
+    QuoteItem savedItem = saveQuoteItem(quote, itemDto, totalItemPrice);
+    saveQuoteItemOptions(savedItem, itemDto);
+
+    logItemProcessingEnd(itemDto, totalItemPrice);
+
+    return totalItemPrice;
+  }
+
+  // ========== CALCUL PRIX ITEM ==========
+
+  private BigDecimal calculateItemBasePrice(QuoteCreateDto dto, QuoteItemCreateDto itemDto) {
+    BigDecimal basePrice =
+        pricingService.calculateQuoteItemPrice(
+            dto.getTourPackageId(),
+            dto.getFormulaId(),
+            itemDto.getMotoLocationId(),
+            itemDto.getAccommodationId(),
+            getRoomType(itemDto),
+            dto.getDepartureDate(),
+            dto.getReturnDate());
+
+    log.info("Base item price (tour+moto+accommodation): {}", basePrice);
+    return basePrice;
+  }
+
+  private String getRoomType(QuoteItemCreateDto itemDto) {
+    return itemDto.getRoomType() != null ? itemDto.getRoomType() : "SINGLE";
+  }
+
+  // ========== CALCUL PRIX OPTIONS ==========
+
+  private BigDecimal calculateItemOptionsPrice(QuoteItemCreateDto itemDto) {
+    if (itemDto.getOptions() == null || itemDto.getOptions().isEmpty()) {
+      return BigDecimal.ZERO;
+    }
+
+    BigDecimal totalOptionsPrice = BigDecimal.ZERO;
+
+    for (QuoteItemOptionCreateDto optionDto : itemDto.getOptions()) {
+      BigDecimal optionPrice = calculateSingleOptionPrice(optionDto);
+      totalOptionsPrice = totalOptionsPrice.add(optionPrice);
+    }
+
+    return totalOptionsPrice;
+  }
+
+  private BigDecimal calculateSingleOptionPrice(QuoteItemOptionCreateDto optionDto) {
+    Optional<Option> optionOpt = optionRepository.findById(optionDto.getOptionId());
+
+    if (optionOpt.isEmpty()) {
+      log.warn("Option not found with id: {}", optionDto.getOptionId());
+      return BigDecimal.ZERO;
+    }
+
+    Option option = optionOpt.get();
+    int quantity = getOptionQuantity(optionDto);
+    BigDecimal optionPrice = option.getPrice().multiply(BigDecimal.valueOf(quantity));
+
+    log.debug("Adding option: {} x {} = {}", option.getName(), quantity, optionPrice);
+
+    return optionPrice;
+  }
+
+  private int getOptionQuantity(QuoteItemOptionCreateDto optionDto) {
+    return optionDto.getQuantity() != null ? optionDto.getQuantity() : 1;
+  }
+
+  // ========== SAUVEGARDE ITEM ==========
+
+  private QuoteItem saveQuoteItem(Quote quote, QuoteItemCreateDto itemDto, BigDecimal totalPrice) {
+    QuoteItem item = buildQuoteItem(quote, itemDto, totalPrice);
+    return quoteItemRepository.save(item);
+  }
+
+  private QuoteItem buildQuoteItem(Quote quote, QuoteItemCreateDto itemDto, BigDecimal totalPrice) {
+    return QuoteItem.builder()
+        .quoteId(quote.getId())
+        .participantName(itemDto.getParticipantName())
+        .motoLocationId(itemDto.getMotoLocationId())
+        .accommodationId(itemDto.getAccommodationId())
+        .lockedUnitPrice(totalPrice)
+        .build();
+  }
+
+  // ========== SAUVEGARDE OPTIONS ==========
+
+  private void saveQuoteItemOptions(QuoteItem item, QuoteItemCreateDto itemDto) {
+    if (itemDto.getOptions() == null || itemDto.getOptions().isEmpty()) {
+      return;
+    }
+
+    for (QuoteItemOptionCreateDto optionDto : itemDto.getOptions()) {
+      saveQuoteItemOption(item, optionDto);
+    }
+  }
+
+  private void saveQuoteItemOption(QuoteItem item, QuoteItemOptionCreateDto optionDto) {
+    Optional<Option> optionOpt = optionRepository.findById(optionDto.getOptionId());
+
+    if (optionOpt.isEmpty()) {
+      log.warn("Skipping option {} - not found", optionDto.getOptionId());
+      return;
+    }
+
+    Option option = optionOpt.get();
+    int quantity = getOptionQuantity(optionDto);
+    BigDecimal optionPrice = option.getPrice().multiply(BigDecimal.valueOf(quantity));
+
+    QuoteItemOption quoteItemOption = buildQuoteItemOption(item, option, quantity, optionPrice);
+    quoteItemOptionRepository.save(quoteItemOption);
+  }
+
+  private QuoteItemOption buildQuoteItemOption(
+      QuoteItem item, Option option, int quantity, BigDecimal price) {
+    return QuoteItemOption.builder()
+        .quoteItemId(item.getId())
+        .optionId(option.getId())
+        .quantity(quantity)
+        .lockedPrice(price)
+        .build();
+  }
+
+  // ========== FINALISATION QUOTE ==========
+
+  private Quote finalizeQuote(Quote quote, BigDecimal totalPrice) {
+    quote.setLockedTotalPrice(totalPrice);
+    Quote savedQuote = quoteRepository.save(quote);
+
+    logQuoteCreationEnd(savedQuote, totalPrice);
+
+    return savedQuote;
+  }
+
+  // ========== MISE À JOUR QUOTE ==========
+
+  private void deleteExistingQuoteItems(Long quoteId) {
+    List<QuoteItem> existingItems = quoteItemRepository.findByQuoteId(quoteId);
+
+    for (QuoteItem item : existingItems) {
+      quoteItemOptionRepository.deleteByQuoteItemId(item.getId());
+    }
+
+    quoteItemRepository.deleteByQuoteId(quoteId);
+    log.debug("Deleted existing items for quote {}", quoteId);
+  }
+
+  private void updateQuoteBasicInfo(Quote quote, QuoteCreateDto dto, Long customerId) {
+    quote.setCustomerId(customerId);
+    quote.setTourPackageId(dto.getTourPackageId());
+    quote.setDepartureDate(dto.getDepartureDate());
+    quote.setReturnDate(dto.getReturnDate());
+    quote.setParticipantCount(calculateParticipantCount(dto));
+  }
+
+  // ========== CONSTRUCTION RÉPONSE ==========
+
+  private List<QuoteItemResponseDto> buildQuoteItemResponses(Long quoteId) {
+    List<QuoteItem> items = quoteItemRepository.findByQuoteId(quoteId);
+
+    return items.stream().map(this::buildQuoteItemResponse).collect(Collectors.toList());
+  }
+
+  private QuoteItemResponseDto buildQuoteItemResponse(QuoteItem item) {
+    List<QuoteItemOption> options = quoteItemOptionRepository.findByQuoteItemId(item.getId());
+
+    List<QuoteItemOptionResponseDto> optionDtos =
+        options.stream().map(QuoteItemOptionResponseDto::fromEntity).collect(Collectors.toList());
+
+    return QuoteItemResponseDto.fromEntity(item, optionDtos);
+  }
+
+  // ========== LOGGING ==========
+
+  private void logQuoteCreationStart(QuoteCreateDto dto) {
+    log.info("Creating quote for tour={}, formula={}", dto.getTourPackageId(), dto.getFormulaId());
+  }
+
+  private void logQuoteCreationEnd(Quote quote, BigDecimal totalPrice) {
+    log.info(
+        "Quote created successfully: {} with total price: {} centimes",
+        quote.getQuoteNumber(),
+        totalPrice);
+  }
+
+  private void logItemProcessingStart(QuoteItemCreateDto itemDto) {
+    log.info("Processing item for participant: {}", itemDto.getParticipantName());
+  }
+
+  private void logItemProcessingEnd(QuoteItemCreateDto itemDto, BigDecimal totalPrice) {
+    log.info("Item processed for {}: {} centimes", itemDto.getParticipantName(), totalPrice);
   }
 }
