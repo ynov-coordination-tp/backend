@@ -1,0 +1,16 @@
+meta {
+  name: get all moto category prices
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://localhost:8080/api/moto-category-prices
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

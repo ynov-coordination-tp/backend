@@ -39,4 +39,24 @@ public class TourFormulaService {
     log.info("Saving tour formula connection");
     return tourFormulaRepository.save(tourFormula);
   }
+
+  public Optional<TourFormula> updateTourFormula(Long id, TourFormula details) {
+    return tourFormulaRepository
+        .findById(id)
+        .map(
+            existing -> {
+              existing.setTour(details.getTour());
+              existing.setFormula(details.getFormula());
+              existing.setIsActive(details.getIsActive());
+              return tourFormulaRepository.save(existing);
+            });
+  }
+
+  public boolean deleteTourFormula(Long id) {
+    if (!tourFormulaRepository.existsById(id)) {
+      return false;
+    }
+    tourFormulaRepository.deleteById(id);
+    return true;
+  }
 }

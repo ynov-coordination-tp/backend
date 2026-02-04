@@ -1,0 +1,28 @@
+meta {
+  name: Create Moto Location
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/api/moto-locations
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "motoCategory": { "id": 1 },
+    "brand": "Honda",
+    "model": "CB500X",
+    "count": 2
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("motoLocationId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+}

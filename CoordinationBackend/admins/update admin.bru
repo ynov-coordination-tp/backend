@@ -1,0 +1,23 @@
+meta {
+  name: update admin
+  type: http
+  seq: 4
+}
+
+put {
+  url: http://localhost:8080/api/admins/{{adminId}}
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "passwordUpdated123"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

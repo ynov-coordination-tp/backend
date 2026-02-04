@@ -1,0 +1,29 @@
+meta {
+  name: create accommodation
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8080/api/accommodations
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Bruno Test Hotel",
+    "city": "Athens",
+    "country": "Greece",
+    "type": "HOTEL"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("accommodationId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

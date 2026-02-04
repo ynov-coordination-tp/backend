@@ -30,6 +30,66 @@ public class AccommodationService {
     return accommodationRepository.findByCountry(country);
   }
 
+  public Accommodation saveAccommodation(Accommodation accommodation) {
+    return accommodationRepository.save(accommodation);
+  }
+
+  public Optional<Accommodation> updateAccommodation(Long id, Accommodation accommodationDetails) {
+    return accommodationRepository
+        .findById(id)
+        .map(
+            existing -> {
+              existing.setName(accommodationDetails.getName());
+              existing.setCity(accommodationDetails.getCity());
+              existing.setCountry(accommodationDetails.getCountry());
+              existing.setType(accommodationDetails.getType());
+              return accommodationRepository.save(existing);
+            });
+  }
+
+  public void deleteAccommodation(Long id) {
+    accommodationRepository.deleteById(id);
+  }
+
+  public List<AccommodationPrice> getAllAccommodationPrices() {
+    return accommodationPriceRepository.findAll();
+  }
+
+  public Optional<AccommodationPrice> getAccommodationPriceById(Long id) {
+    return accommodationPriceRepository.findById(id);
+  }
+
+  public List<AccommodationPrice> getAccommodationPricesByAccommodationId(Long accommodationId) {
+    return accommodationPriceRepository.findByAccommodationId(accommodationId);
+  }
+
+  public AccommodationPrice saveAccommodationPrice(AccommodationPrice price) {
+    return accommodationPriceRepository.save(price);
+  }
+
+  public Optional<AccommodationPrice> updateAccommodationPrice(
+      Long id, AccommodationPrice details) {
+    return accommodationPriceRepository
+        .findById(id)
+        .map(
+            existing -> {
+              existing.setAccommodationId(details.getAccommodationId());
+              existing.setStartDate(details.getStartDate());
+              existing.setEndDate(details.getEndDate());
+              existing.setNightlyPrice(details.getNightlyPrice());
+              existing.setRoomType(details.getRoomType());
+              return accommodationPriceRepository.save(existing);
+            });
+  }
+
+  public boolean deleteAccommodationPrice(Long id) {
+    if (!accommodationPriceRepository.existsById(id)) {
+      return false;
+    }
+    accommodationPriceRepository.deleteById(id);
+    return true;
+  }
+
   public Optional<AccommodationPrice> getAccommodationPrice(
       Long accommodationId, LocalDate date, String roomType) {
     return accommodationPriceRepository.findPriceForDate(accommodationId, roomType, date);

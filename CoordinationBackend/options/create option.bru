@@ -1,0 +1,28 @@
+meta {
+  name: create option
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/api/options
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "name": "Bruno GPS",
+    "price": 15.00,
+    "targetType": "QUOTE_ITEM"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("optionId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

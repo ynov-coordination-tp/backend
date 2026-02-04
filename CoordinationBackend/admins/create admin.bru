@@ -1,0 +1,32 @@
+meta {
+  name: create admin
+  type: http
+  seq: 3
+}
+
+script:pre-request {
+  const unique = Date.now();
+  bru.setEnvVar("adminEmail", `admin+${unique}@test.com`);
+}
+
+post {
+  url: http://localhost:8080/api/admins
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "password123"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("adminId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -1,0 +1,31 @@
+meta {
+  name: create moto category price
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/api/moto-category-prices
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "motoCategory": { "id": 1 },
+    "country": "Greece",
+    "startDate": "2026-05-01",
+    "endDate": "2026-05-31",
+    "dailyPrice": 110.00,
+    "kmPrice": 0.50
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("motoCategoryPriceId", res.body.id);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -99,6 +99,10 @@ public class QuoteService {
     return quoteRepository.save(quote);
   }
 
+  public List<Quote> getAllQuotes() {
+    return quoteRepository.findAll();
+  }
+
   public Optional<QuoteResponseDto> getQuoteById(Long id) {
     Optional<Quote> quoteOpt = quoteRepository.findById(id);
     if (quoteOpt.isEmpty()) {
@@ -198,6 +202,21 @@ public class QuoteService {
 
   public List<Quote> getQuotesByCustomerId(Long customerId) {
     return quoteRepository.findByCustomerId(customerId);
+  }
+
+  @Transactional
+  public boolean deleteQuote(Long id) {
+    if (!quoteRepository.existsById(id)) {
+      return false;
+    }
+
+    List<QuoteItem> items = quoteItemRepository.findByQuoteId(id);
+    for (QuoteItem item : items) {
+      quoteItemOptionRepository.deleteByQuoteItemId(item.getId());
+    }
+    quoteItemRepository.deleteByQuoteId(id);
+    quoteRepository.deleteById(id);
+    return true;
   }
 
   private String generateQuoteNumber() {

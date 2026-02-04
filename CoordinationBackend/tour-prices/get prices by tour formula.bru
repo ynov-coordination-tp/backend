@@ -1,0 +1,16 @@
+meta {
+  name: get prices by tour formula
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:8080/api/tour-prices/formula/1
+  body: none
+  auth: inherit
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}
