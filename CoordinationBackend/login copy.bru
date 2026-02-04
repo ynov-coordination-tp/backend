@@ -1,0 +1,27 @@
+meta {
+  name: login copy
+  type: http
+  seq: 3
+}
+
+post {
+  url: http://localhost:8080/api/auth/login
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "admin@test.com",
+    "password": "password"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("token", res.body.token);
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+}

@@ -35,11 +35,10 @@ public class AdminService {
 
     try {
       File f = new File("C:\\Users\\elias\\Downloads\\Cahier des charges - Gemini.pdf");
-      emailService.sendEmailWithAttachment(
+      emailService.sendSimpleEmail(
           "elias.eloudghiri@gmail.com",
           "Admin Login Alert",
-          "Admin with email " + adminPost.getEmail() + " has logged in.",
-          f);
+          "Admin with email " + adminPost.getEmail() + " has logged in.");
 
     } catch (Exception e) {
       log.error("Failed to send admin login alert email.");
