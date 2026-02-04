@@ -3,7 +3,6 @@ package hellenicRides.backend.service;
 import hellenicRides.backend.dto.AuthResponse;
 import hellenicRides.backend.entity.AdminPost;
 import hellenicRides.backend.util.JwtUtil;
-import java.io.File;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,12 +33,10 @@ public class AdminService {
     final String jwt = jwtUtil.generateToken(userDetails);
 
     try {
-      File f = new File("C:\\Users\\elias\\Downloads\\Cahier des charges - Gemini.pdf");
-      emailService.sendEmailWithAttachment(
+      emailService.sendSimpleEmail(
           "elias.eloudghiri@gmail.com",
           "Admin Login Alert",
-          "Admin with email " + adminPost.getEmail() + " has logged in.",
-          f);
+          "Admin with email " + adminPost.getEmail() + " has logged in.");
 
     } catch (Exception e) {
       log.error("Failed to send admin login alert email.");
